@@ -61,7 +61,9 @@ export default async function middleware(req: NextRequest) {
       );
 
       if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json();
+        const sessionData = (await sessionResponse.json()) as {
+          data?: { session?: unknown };
+        };
         isLoggedIn = Boolean(sessionData?.data?.session);
       }
     } catch {

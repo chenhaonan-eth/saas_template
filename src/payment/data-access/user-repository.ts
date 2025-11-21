@@ -8,7 +8,7 @@ export class UserRepository {
   ): Promise<string | undefined> {
     const db = await getDb();
     const result = await db
-      .select({ id: user.id })
+      .select()
       .from(user)
       .where(eq(user.customerId, customerId))
       .limit(1);
@@ -27,7 +27,7 @@ export class UserRepository {
         updatedAt: new Date(),
       })
       .where(eq(user.email, email))
-      .returning({ id: user.id });
+      .returning();
     return result[0]?.id;
   }
 }

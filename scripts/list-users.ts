@@ -8,7 +8,7 @@ export default async function listUsers() {
   const db = await getDb();
 
   try {
-    const users = await db.select({ email: user.email }).from(user);
+    const users = await db.select().from(user);
 
     // Extract emails from users
     const emails: string[] = users.map((user) => user.email);

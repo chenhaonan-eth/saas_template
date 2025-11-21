@@ -1,6 +1,8 @@
+import { CREDIT_TRANSACTION_TYPE } from '../types';
+
 export type CreditCommand = {
   userId: string;
-  type: string;
+  type: CREDIT_TRANSACTION_TYPE;
   amount: number;
   description: string;
   expireDays?: number;
@@ -10,7 +12,7 @@ export type CreditCommand = {
 
 export type CreditCommandError = {
   userId: string;
-  type: string;
+  type: CREDIT_TRANSACTION_TYPE;
   error: unknown;
 };
 

@@ -7,8 +7,6 @@ import { defineConfig } from 'drizzle-kit';
 export default defineConfig({
   out: './src/db/migrations',
   schema: './src/db/schema.ts',
-  dialect: 'postgresql',
-  dbCredentials: {
-    url: process.env.DATABASE_URL!,
-  },
+  dialect: 'sqlite',
+  // dbCredentials is not needed for D1 local dev with wrangler
 });

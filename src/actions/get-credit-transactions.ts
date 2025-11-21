@@ -81,32 +81,21 @@ export const getCreditTransactionsAction = userActionClient
       const sortDirection = sortConfig?.desc ? desc : asc;
 
       const db = await getDb();
-      const [items, [{ count }]] = await Promise.all([
-        db
-          .select({
-            id: creditTransaction.id,
-            userId: creditTransaction.userId,
-            type: creditTransaction.type,
-            description: creditTransaction.description,
-            amount: creditTransaction.amount,
-            remainingAmount: creditTransaction.remainingAmount,
-            paymentId: creditTransaction.paymentId,
-            expirationDate: creditTransaction.expirationDate,
-            expirationDateProcessedAt:
-              creditTransaction.expirationDateProcessedAt,
-            createdAt: creditTransaction.createdAt,
-            updatedAt: creditTransaction.updatedAt,
-          })
-          .from(creditTransaction)
-          .where(where)
-          .orderBy(sortDirection(sortField))
-          .limit(pageSize)
-          .offset(offset),
-        db
-          .select({ count: sql`count(*)` })
-          .from(creditTransaction)
-          .where(where),
-      ]);
+      // Fetch items with a plain select (all columns)
+      const items = await db
+        .select()
+        .from(creditTransaction)
+        .where(where)
+        .orderBy(sortDirection(sortField))
+        .limit(pageSize)
+        .offset(offset);
+
+      // Compute total count separately (SQLite does not support object select with count)
+      const allRows = await db
+        .select()
+        .from(creditTransaction)
+        .where(where);
+      const count = allRows.length;
 
       return {
         success: true,

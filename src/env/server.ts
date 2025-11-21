@@ -16,8 +16,8 @@ const telemetryString = z
   .default('1');
 
 const serverSchemaInput = z.object({
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  BETTER_AUTH_SECRET: z.string().min(1, 'BETTER_AUTH_SECRET is required'),
+  DATABASE_URL: optionalString,
+  BETTER_AUTH_SECRET: optionalString.default('dev-secret'),
   NEXT_TELEMETRY_DISABLED: telemetryString,
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,

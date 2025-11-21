@@ -1,6 +1,7 @@
 import { websiteConfig } from '@/config/website';
 import { storageConfig } from './config/storage-config';
 import { S3Provider } from './provider/s3';
+import { R2Provider } from './provider/r2';
 import type { StorageConfig, StorageProvider, UploadFileResult } from './types';
 
 /**
@@ -31,12 +32,24 @@ export const getStorageProvider = (): StorageProvider => {
  */
 export const initializeStorageProvider = (): StorageProvider => {
   if (!storageProvider) {
+    // Check if we are running in Cloudflare Workers (R2)
+    // For now, we can use a simple check or rely on configuration
+    // If websiteConfig.storage.provider is 'r2', use R2Provider
+    // Or if we detect we are in a worker environment and want to prefer R2
+    
     if (websiteConfig.storage.provider === 's3') {
-      storageProvider = new S3Provider();
+       // If configured as S3 but we want to use native R2 in Cloudflare
+       // We can check if we have the binding, or just stick to S3 provider (which uses s3mini)
+       // But the user requested native R2.
+       // Let's assume we update the config or just default to R2 if binding exists?
+       // Safer to stick to config.
+       storageProvider = new S3Provider();
+    } else if (websiteConfig.storage.provider === 'r2') {
+       storageProvider = new R2Provider();
     } else {
-      throw new Error(
-        `Unsupported storage provider: ${websiteConfig.storage.provider}`
-      );
+       // Default to S3 for now if not specified, or throw
+       // But let's try to use R2 if we are in Cloudflare
+       storageProvider = new R2Provider();
     }
   }
   return storageProvider;

@@ -1,3 +1,4 @@
+import { getCurrentPeriodKey } from '../utils/period-key';
 import { featureFlags } from '@/config/feature-flags';
 import { findPlanByPriceId } from '@/lib/price-plan';
 import { getLogger } from '@/lib/server/logger';
@@ -45,11 +46,11 @@ export class CreditDistributionService {
         const payload: PeriodicAddCreditsPayload = {
           userId: command.userId,
           amount: command.amount,
-          type: command.type,
+          type: command.type as PeriodicAddCreditsPayload['type'],
           description: command.description,
           expireDays: command.expireDays,
           paymentId: command.paymentId,
-          periodKey: command.periodKey,
+          periodKey: command.periodKey ?? getCurrentPeriodKey(),
         };
         await addCredits(payload);
         result.processed += 1;
@@ -142,7 +143,7 @@ export class CreditDistributionService {
     users: PlanUserRecord[];
     periodKey?: number;
     monthLabel: string;
-    creditType: string;
+    creditType: CREDIT_TRANSACTION_TYPE;
     descriptionPrefix: string;
     planFilter?: (plan: PricePlan | undefined, priceId: string) => boolean;
   }): CreditCommand[] {

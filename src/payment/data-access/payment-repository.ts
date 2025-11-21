@@ -16,7 +16,11 @@ export class PaymentRepository {
   }
 
   async withTransaction<T>(handler: (tx: DbExecutor) => Promise<T>) {
-    const db = await getDb();
+    const _db = await getDb();
+    // Cast to D1 database to allow async transaction
+    const db = _db as import('drizzle-orm/d1').DrizzleD1Database<
+      typeof import('@/db/schema')
+    >;
     return await db.transaction(async (tx) => await handler(tx));
   }
 
@@ -59,10 +63,11 @@ export class PaymentRepository {
     record: PaymentInsert,
     db?: DbExecutor
   ): Promise<string | undefined> {
-    const client = await this.resolveDb(db);
-    const result = await client.insert(payment).values(record).returning({
-      id: payment.id,
-    });
+    const _client = await this.resolveDb(db);
+    const client = _client as import('drizzle-orm/d1').DrizzleD1Database<
+      typeof import('@/db/schema')
+    >;
+    const result = await client.insert(payment).values(record).returning();
     return result[0]?.id;
   }
 
@@ -70,7 +75,10 @@ export class PaymentRepository {
     record: PaymentInsert,
     db?: DbExecutor
   ): Promise<string | undefined> {
-    const client = await this.resolveDb(db);
+    const _client = await this.resolveDb(db);
+    const client = _client as import('drizzle-orm/d1').DrizzleD1Database<
+      typeof import('@/db/schema')
+    >;
     const result = await client
       .insert(payment)
       .values(record)
@@ -88,7 +96,7 @@ export class PaymentRepository {
           updatedAt: record.updatedAt,
         },
       })
-      .returning({ id: payment.id });
+      .returning();
     return result[0]?.id;
   }
 
@@ -97,12 +105,15 @@ export class PaymentRepository {
     updates: Partial<PaymentInsert>,
     db?: DbExecutor
   ): Promise<string | undefined> {
-    const client = await this.resolveDb(db);
+    const _client = await this.resolveDb(db);
+    const client = _client as import('drizzle-orm/d1').DrizzleD1Database<
+      typeof import('@/db/schema')
+    >;
     const result = await client
       .update(payment)
       .set(updates)
       .where(eq(payment.subscriptionId, subscriptionId))
-      .returning({ id: payment.id });
+      .returning();
     return result[0]?.id;
   }
 }

@@ -36,36 +36,17 @@ export async function distributeCreditsToAllUsers(options?: {
   // Get all users with their current active payments/subscriptions in a single query
   // This uses a LEFT JOIN to get users and their latest active payment in one query
   const latestPaymentQuery = db
-    .select({
-      userId: payment.userId,
-      priceId: payment.priceId,
-      status: payment.status,
-      createdAt: payment.createdAt,
-      rowNumber:
-        sql<number>`ROW_NUMBER() OVER (PARTITION BY ${payment.userId} ORDER BY ${payment.createdAt} DESC)`.as(
-          'row_number'
-        ),
-    })
+    .select()
     .from(payment)
     .where(or(eq(payment.status, 'active'), eq(payment.status, 'trialing')))
     .as('latest_payment');
 
   const usersWithPayments = await db
-    .select({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      priceId: latestPaymentQuery.priceId,
-      paymentStatus: latestPaymentQuery.status,
-      paymentCreatedAt: latestPaymentQuery.createdAt,
-    })
+    .select()
     .from(user)
     .leftJoin(
       latestPaymentQuery,
-      and(
-        eq(user.id, latestPaymentQuery.userId),
-        eq(latestPaymentQuery.rowNumber, 1)
-      )
+        eq(user.id, latestPaymentQuery.userId)
     )
     .where(or(isNull(user.banned), eq(user.banned, false)));
 
@@ -95,38 +76,37 @@ export async function distributeCreditsToAllUsers(options?: {
   const yearlyUsers: PlanUserRecord[] = [];
 
   usersWithPayments.forEach((userRecord) => {
-    // Check if user has active subscription (status is 'active' or 'trialing')
     if (
-      userRecord.priceId &&
-      userRecord.paymentStatus &&
-      (userRecord.paymentStatus === 'active' ||
-        userRecord.paymentStatus === 'trialing')
+      userRecord.latest_payment?.priceId &&
+      userRecord.latest_payment?.status &&
+      (userRecord.latest_payment.status === 'active' ||
+        userRecord.latest_payment.status === 'trialing')
     ) {
       // User has active subscription - check what type
-      const pricePlan = findPlanByPriceId(userRecord.priceId);
+      const pricePlan = findPlanByPriceId(userRecord.latest_payment.priceId);
       if (pricePlan?.isLifetime && pricePlan?.credits?.enable) {
         lifetimeUsers.push({
-          userId: userRecord.userId,
-          priceId: userRecord.priceId,
+          userId: userRecord.user.id,
+          priceId: userRecord.latest_payment.priceId,
         });
       } else if (!pricePlan?.isFree && pricePlan?.credits?.enable) {
         // Check if this is a yearly subscription that needs monthly credits
         const yearlyPrice = pricePlan?.prices?.find(
           (p) =>
-            p.priceId === userRecord.priceId &&
+            p.priceId === userRecord.latest_payment?.priceId &&
             p.interval === PlanIntervals.YEAR
         );
         if (yearlyPrice) {
           yearlyUsers.push({
-            userId: userRecord.userId,
-            priceId: userRecord.priceId,
+            userId: userRecord.user.id,
+            priceId: userRecord.latest_payment.priceId,
           });
         }
         // Monthly subscriptions are handled by Stripe webhooks automatically
       }
     } else {
       // User has no active subscription - add free monthly credits if enabled
-      freeUserIds.push(userRecord.userId);
+      freeUserIds.push(userRecord.user.id);
     }
   });
 
@@ -281,11 +261,9 @@ export async function batchProcessExpiredCredits() {
   const db = await getDb();
   const now = new Date();
 
-  // Get all users who have credit transactions that can expire
-  const usersWithExpirableCredits = await db
-    .selectDistinct({
-      userId: creditTransaction.userId,
-    })
+  // Get all transactions that can expire and dedupe user IDs in-process
+  const expirableTransactions = await db
+    .select()
     .from(creditTransaction)
     .where(
       and(
@@ -302,6 +280,9 @@ export async function batchProcessExpiredCredits() {
         lt(creditTransaction.expirationDate, now)
       )
     );
+  const usersWithExpirableCredits = Array.from(
+    new Set(expirableTransactions.map((transaction) => transaction.userId))
+  );
 
   baseLogger.info(
     {
@@ -321,9 +302,7 @@ export async function batchProcessExpiredCredits() {
   for (let i = 0; i < usersWithExpirableCredits.length; i += batchSize) {
     const batch = usersWithExpirableCredits.slice(i, i + batchSize);
     try {
-      const batchResult = await batchProcessExpiredCreditsForUsers(
-        batch.map((user) => user.userId)
-      );
+      const batchResult = await batchProcessExpiredCreditsForUsers(batch);
       processedCount += batchResult.processedCount;
       totalExpiredCredits += batchResult.expiredCredits;
     } catch (error) {
@@ -359,7 +338,12 @@ export async function batchProcessExpiredCreditsForUsers(userIds: string[]) {
     return { processedCount: 0, expiredCredits: 0 };
   }
 
-  const db = await getDb();
+  const _db = await getDb();
+  // Cast to D1 database type as we need async transaction support which BetterSQLite3 doesn't provide
+  // This code is intended to run in Cloudflare environment
+  const db = _db as import('drizzle-orm/d1').DrizzleD1Database<
+    typeof import('@/db/schema')
+  >;
   const now = new Date();
 
   let totalProcessedCount = 0;

@@ -33,7 +33,7 @@ export const createPortalAction = userActionClient
       // Get the user's customer ID from the database
       const db = await getDb();
       const customerResult = await db
-        .select({ customerId: user.customerId })
+        .select()
         .from(user)
         .where(eq(user.id, currentUser.id))
         .limit(1);

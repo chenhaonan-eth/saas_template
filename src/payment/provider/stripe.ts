@@ -130,7 +130,7 @@ export class StripeProvider implements PaymentProvider {
           updatedAt: new Date(),
         })
         .where(eq(user.email, email))
-        .returning({ id: user.id });
+        .returning();
 
       if (result.length > 0) {
         console.log('Updated user with customer ID (hidden)');
@@ -155,7 +155,7 @@ export class StripeProvider implements PaymentProvider {
       // Query the user table for a matching customerId
       const db = await getDb();
       const result = await db
-        .select({ id: user.id })
+        .select()
         .from(user)
         .where(eq(user.customerId, customerId))
         .limit(1);
@@ -571,7 +571,7 @@ export class StripeProvider implements PaymentProvider {
     const result = await db
       .insert(payment)
       .values(createFields)
-      .returning({ id: payment.id });
+      .returning();
 
     if (result.length > 0) {
       console.log('<< Created new payment record for Stripe subscription');
@@ -609,11 +609,7 @@ export class StripeProvider implements PaymentProvider {
     // Get current payment record to check for period changes (indicating renewal)
     const db = await getDb();
     const payments = await db
-      .select({
-        userId: payment.userId,
-        periodStart: payment.periodStart,
-        periodEnd: payment.periodEnd,
-      })
+      .select()
       .from(payment)
       .where(eq(payment.subscriptionId, stripeSubscription.id))
       .limit(1);
@@ -655,7 +651,7 @@ export class StripeProvider implements PaymentProvider {
       .update(payment)
       .set(updateFields)
       .where(eq(payment.subscriptionId, stripeSubscription.id))
-      .returning({ id: payment.id });
+      .returning();
 
     if (result.length > 0) {
       console.log('<< Updated payment record for Stripe subscription');
@@ -701,7 +697,7 @@ export class StripeProvider implements PaymentProvider {
         updatedAt: new Date(),
       })
       .where(eq(payment.subscriptionId, stripeSubscription.id))
-      .returning({ id: payment.id });
+      .returning();
 
     if (result.length > 0) {
       console.log('<< Marked payment record for subscription as canceled');
@@ -742,7 +738,7 @@ export class StripeProvider implements PaymentProvider {
 
       // Check if this session has already been processed to prevent duplicate processing
       const existingPayment = await db
-        .select({ id: payment.id })
+        .select()
         .from(payment)
         .where(eq(payment.sessionId, session.id))
         .limit(1);
@@ -770,7 +766,7 @@ export class StripeProvider implements PaymentProvider {
           createdAt: now,
           updatedAt: now,
         })
-        .returning({ id: payment.id });
+        .returning();
 
       if (result.length === 0) {
         console.warn('<< Failed to create one-time payment record for user');
@@ -836,7 +832,7 @@ export class StripeProvider implements PaymentProvider {
       // Check if this session has already been processed to prevent duplicate credit additions
       const db = await getDb();
       const existingPayment = await db
-        .select({ id: payment.id })
+        .select()
         .from(payment)
         .where(eq(payment.sessionId, session.id))
         .limit(1);

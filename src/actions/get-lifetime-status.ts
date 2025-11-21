@@ -46,11 +46,7 @@ export const getLifetimeStatusAction = userActionClient
       // Query the database for one-time payments with lifetime plans
       const db = await getDb();
       const result = await db
-        .select({
-          id: payment.id,
-          priceId: payment.priceId,
-          type: payment.type,
-        })
+        .select()
         .from(payment)
         .where(
           and(

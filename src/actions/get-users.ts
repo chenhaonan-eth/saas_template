@@ -61,16 +61,18 @@ export const getUsersAction = adminActionClient
       const sortDirection = sortConfig?.desc ? desc : asc;
 
       const db = await getDb();
-      let [items, [{ count }]] = await Promise.all([
-        db
-          .select()
-          .from(user)
-          .where(where)
-          .orderBy(sortDirection(sortField))
-          .limit(pageSize)
-          .offset(offset),
-        db.select({ count: sql`count(*)` }).from(user).where(where),
-      ]);
+      // Fetch paginated items
+      let items = await db
+        .select()
+        .from(user)
+        .where(where)
+        .orderBy(sortDirection(sortField))
+        .limit(pageSize)
+        .offset(offset);
+
+      // Compute total count separately
+      const allRows = await db.select().from(user).where(where);
+      const count = allRows.length;
 
       // hide user data in demo website
       const isDemo = isDemoWebsite();

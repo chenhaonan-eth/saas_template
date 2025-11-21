@@ -216,7 +216,12 @@ export class CreditLedgerDomainService {
       return;
     }
 
-    await executor.transaction(async (tx) => {
+    // Cast to D1 database to allow async transaction
+    const d1Db = executor as import('drizzle-orm/d1').DrizzleD1Database<
+      typeof import('@/db/schema')
+    >;
+
+    await d1Db.transaction(async (tx) => {
       await this.consumeCreditsWithExecutor(payload, tx);
     });
   }

@@ -62,3 +62,5 @@ next-env.d.ts
 .dev.vars
 .dev.vars*
 !.dev.vars.example
+
+local.db

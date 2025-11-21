@@ -127,6 +127,7 @@
     "react-day-picker": "9.11.1",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.66.0",
+    "react-is": "^19.2.0",
     "react-remove-scroll": "^2.7.1",
     "react-resizable-panels": "^3.0.6",
     "react-syntax-highlighter": "^16.1.0",
@@ -153,9 +154,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.3",
+    "@cloudflare/workers-types": "^4.20251119.0",
+    "@opennextjs/cloudflare": "^1.13.0",
     "@playwright/test": "^1.48.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@tanstack/eslint-plugin-query": "^5.91.2",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/mdx": "^2.0.13",
     "@types/node": "^24.10.0",
     "@types/pg": "^8.15.6",
@@ -163,6 +167,7 @@
     "@types/react-dom": "^19.2.2",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitest/coverage-v8": "^1.6.0",
+    "better-sqlite3": "^12.4.1",
     "drizzle-kit": "^0.31.6",
     "knip": "^5.67.1",
     "postcss": "^8.5.6",
@@ -171,7 +176,8 @@
     "tailwindcss": "^4.1.16",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "wrangler": "^4.49.0"
   },
   "pnpm": {
     "overrides": {

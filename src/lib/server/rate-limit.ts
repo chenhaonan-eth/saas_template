@@ -37,9 +37,21 @@ const memoryStore = new Map<string, { count: number; expiresAt: number }>();
 
 const DEFAULT_WINDOW: RateLimitWindow = '1 m';
 
+// Helper to get Cloudflare Rate Limiter
+async function getCloudflareRateLimiter() {
+  try {
+    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
+    const context = await getCloudflareContext();
+    // @ts-ignore - RATE_LIMITER binding might not be typed in dev
+    return context.env.RATE_LIMITER;
+  } catch (error) {
+    return null;
+  }
+}
+
 /**
- * Applies a sliding-window rate limit using Upstash if available, otherwise falls back
- * to an in-memory token bucket (best-effort for local development).
+ * Applies a sliding-window rate limit using Cloudflare Native Rate Limiting or Upstash if available,
+ * otherwise falls back to an in-memory token bucket (best-effort for local development).
  */
 export async function enforceRateLimit(
   options: RateLimitOptions
@@ -50,6 +62,31 @@ export async function enforceRateLimit(
 
   if (!identifier) {
     return { ok: true };
+  }
+
+  // Try Cloudflare Native Rate Limiting first
+  const cfLimiter = await getCloudflareRateLimiter();
+  if (cfLimiter) {
+    try {
+      // Cloudflare Rate Limiting API
+      // https://developers.cloudflare.com/workers/runtime-apis/ratelimit/
+      const { success } = await cfLimiter.limit({ key: identifier });
+      
+      if (!success) {
+        return {
+          ok: false,
+          response: buildRateLimitResponse({
+            limit: options.limit, // CF limiter doesn't return limit/remaining in the same way always, but we can approximate
+            remaining: 0,
+            reset: Date.now() + windowMs, // Approximation
+          }),
+        };
+      }
+      return { ok: true };
+    } catch (e) {
+      console.error('Cloudflare Rate Limiter error:', e);
+      // Fallback to other methods if CF fails
+    }
   }
 
   if (redisClient) {
